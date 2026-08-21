@@ -12,7 +12,9 @@ import pandas as pd
 import joblib
 
 # Load trained model
-model = joblib.load("model.pkl")
+model = joblib.load("fuel-efficiency_prediction_model.pkl")
+label_encoders = joblib.load("Label_Encoder.pkl")
+car_encoder = label_encoders["car name"]
 
 # Page configuration
 st.set_page_config(
@@ -80,8 +82,25 @@ origin_mapping = {
 
 origin_value = origin_mapping[origin]
 
-# Prediction button
+# --------------------------------------------------
+# Car name
+# --------------------------------------------------
+
+car_names = list(car_encoder.classes_)
+
+car_name = st.selectbox(
+    "Car Name",
+    car_names
+)
+
+# --------------------------------------------------
+# Prediction
+# --------------------------------------------------
+
 if st.button("Predict Fuel Efficiency"):
+
+    # Encode car name
+    car_name_encoded = car_encoder.transform([car_name])[0]
 
     # Create input dataframe
     input_data = pd.DataFrame({
@@ -90,22 +109,26 @@ if st.button("Predict Fuel Efficiency"):
         "horsepower": [horsepower],
         "weight": [weight],
         "acceleration": [acceleration],
-        "model_year": [model_year],
-        "origin": [origin_value]
+        "model year": [model_year],
+        "origin": [origin_value],
+        "car name": [car_name_encoded]
     })
+
 
     # Make prediction
     prediction = model.predict(input_data)
 
+    mpg = prediction[0]
+
     # Display result
     st.success(
-        f"Predicted Fuel Efficiency: **{prediction[0]:.2f} MPG**"
+        f"Predicted Fuel Efficiency: **{mpg:.2f} MPG**"
     )
 
     # Interpretation
-    if prediction[0] >= 30:
+    if mpg >= 30:
         st.info("This vehicle has relatively high fuel efficiency.")
-    elif prediction[0] >= 20:
+    elif mpg >= 20:
         st.warning("This vehicle has moderate fuel efficiency.")
     else:
         st.error("This vehicle has relatively low fuel efficiency.")
